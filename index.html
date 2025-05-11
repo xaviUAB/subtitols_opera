@@ -30,7 +30,7 @@
 </head>
 <body>
   <input type="file" id="fileInput" accept=".txt">
-  <div id="subtitle">Carrega un fitxer per començar</div>
+  <div id="subtitle">Carrega un fitxer</div>
 
   <script>
     const fileInput = document.getElementById('fileInput');
@@ -133,6 +133,8 @@
           break;
       }
     });
+    // 👉 Carrega automàticament el fitxer per defecte
+    fetchAndLoadFile("elisir_subt_cat.txt");
   </script>
 </body>
 </html>
