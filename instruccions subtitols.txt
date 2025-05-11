@@ -1,0 +1,66 @@
+Instruccions de l'eina subtitols
+----------------
+Prem la tecla fletxa dreta ->
+
+Amb aquesta tecla avances a
+la seguent pantalla de visualització
+->
+
+* Alineació de text
+
+Amb "A" poses els textos
+al centre de la pantalla
+->
+
+Amb "Q" poses els textos
+a la part superior de la pantalla
+->
+
+Amb "Z" poses els textos
+a la part inferior
+->
+
+* Mida de text
+
+Pots ampliar la lletra amb "+"
+->
+
+I es redueix la lletra amb "-"
+->
+
+Si vols accedir a alguna marca de text
+prem "L"
+
+* Creació de fitxers
+
+Per començar, has de crear un fitxer txt
+amb els textos que han de mostrar-se
+
+No escriguis més de tres files
+
+Separa cada grup de frases
+per un salt de línea en blanc
+
+Si necesites una pantalla sense res
+escriu "---" deixant també
+un salt de línea abans i després
+
+Les marques dins del fitxer,
+com l'inici d'un acte o una escena,
+els marques amb "* "
+
+Un exemple seria
+"* Acte I - Escena 1"
+(sense les comentes)
+
+I si vols retrocedir
+utilitza la tecla
+fletxa esquerra <-
+
+Aquesta eina ha estat
+dissenyada per a 
+l'Obrador Coral de Rubí
+
+per Xavier Ribes
+OCR 2025
+
