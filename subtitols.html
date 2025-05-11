@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <title>Subtítols</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-size: 4em;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+      white-space: pre-line;
+      transition: font-size 0.2s, align-items 0.2s;
+    }
+    #fileInput {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+    }
+    #subtitle {
+      margin: 1em;
+    }
+  </style>
+</head>
+<body>
+  <input type="file" id="fileInput" accept=".txt">
+  <div id="subtitle">Carrega un fitxer per començar</div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const subtitleDiv = document.getElementById('subtitle');
+    let subtitles = [];
+    let accessPoints = [];
+    let currentIndex = 0;
+    let fontSize = 4; // mida inicial en em
+
+    function updateFontSize() {
+      document.body.style.fontSize = fontSize + 'em';
+    }
+
+    function setAlignment(position) {
+      document.body.style.alignItems = position;
+    }
+
+    fileInput.addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const rawBlocks = text.trim().split(/\n\s*\n/);
+
+        subtitles = [];
+        accessPoints = [];
+
+        rawBlocks.forEach((block) => {
+          const trimmedBlock = block.trim();
+          if (trimmedBlock.startsWith('*')) {
+            const label = trimmedBlock.replace(/^\*\s*/, '');
+            accessPoints.push({ label, index: subtitles.length });
+          } else {
+            subtitles.push(trimmedBlock);
+          }
+        });
+
+        currentIndex = 0;
+        fileInput.remove();
+        showSubtitle();
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+
+    function showSubtitle() {
+      if (subtitles.length === 0) {
+        subtitleDiv.textContent = '';
+        return;
+      }
+
+      const content = subtitles[currentIndex];
+      subtitleDiv.textContent = content === '---' ? '' : content;
+    }
+
+    document.addEventListener('keydown', function(e) {
+      switch (e.key) {
+        case 'ArrowRight':
+          if (currentIndex < subtitles.length - 1) currentIndex++;
+          showSubtitle();
+          break;
+        case 'ArrowLeft':
+          if (currentIndex > 0) currentIndex--;
+          showSubtitle();
+          break;
+        case 'l': // mostra llista de punts d'accés
+          e.preventDefault();
+          if (accessPoints.length === 0) {
+            alert("No hi ha cap punt d'accés.");
+            return;
+          }
+          const menu = accessPoints.map((p, i) => `${i + 1}. ${p.label}`).join('\n');
+          const input = prompt(`Tria un punt d'accés:\n${menu}`);
+          const selectedIndex = parseInt(input) - 1;
+          if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < accessPoints.length) {
+            currentIndex = accessPoints[selectedIndex].index;
+            showSubtitle();
+          }
+          break;
+        case 'q': // superior
+          setAlignment('flex-start');
+          break;
+        case 'a': // centrat
+          setAlignment('center');
+          break;
+        case 'z': // inferior
+          setAlignment('flex-end');
+          break;
+        case '-': // redueix mida
+          if (fontSize > 1) fontSize -= 0.5;
+          updateFontSize();
+          break;
+        case '+':
+        case '=': // compatible amb Shift+'=' per fer '+'
+          if (e.shiftKey || e.key === '+') {
+            fontSize += 0.5;
+            updateFontSize();
+          }
+          break;
+      }
+    });
+  </script>
+</body>
+</html>
