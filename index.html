@@ -13,7 +13,6 @@
       height: 100vh;
       overflow: hidden;
       position: relative;
-      touch-action: manipulation;
     }
 
     #fileInputContainer {
@@ -38,34 +37,17 @@
       text-align: center;
       padding: 0.5em;
       white-space: pre-line;
-      color: #2e2e2e;
       font-size: 0.5em;
     }
 
-    .align-top #current {
-      top: 1em;
-    }
+    .align-top #current { top: 1em; }
+    .align-center #current { top: 50%; transform: translateY(-50%); }
+    .align-bottom #current { bottom: 1em; }
 
-    .align-center #current {
-      top: 50%;
-      transform: translateY(-50%);
-    }
+    .next-at-top #next { top: 0.5em; }
+    .next-at-bottom #next { bottom: 0.5em; }
 
-    .align-bottom #current {
-      bottom: 1em;
-    }
-
-    .next-at-top #next {
-      top: 0.5em;
-    }
-
-    .next-at-bottom #next {
-      bottom: 0.5em;
-    }
-
-    .hide-next #next {
-      display: none;
-    }
+    .hide-next #next { display: none; }
   </style>
 </head>
 <body class="align-top next-at-bottom">
@@ -88,6 +70,19 @@
     let currentIndex = 0;
     let fontSize = 4;
     const fontStep = 0.2;
+    let alignment = 'top';
+
+    // Gestió de grisos: 20 nivells entre blanc (0) i negre (19)
+    let grayLevel = 14; // corresponent a #2e2e2e aprox.
+    const maxGray = 19;
+    const minGray = 0;
+
+    function setNextGray(level) {
+      grayLevel = Math.min(maxGray, Math.max(minGray, level));
+      const value = Math.round(255 - (grayLevel * (255 / maxGray)));
+      const hex = value.toString(16).padStart(2, '0');
+      nextDiv.style.color = `#${hex}${hex}${hex}`;
+    }
 
     function updateFontSize() {
       document.body.style.fontSize = fontSize + 'em';
@@ -98,8 +93,8 @@
         'align-top', 'align-center', 'align-bottom',
         'next-at-top', 'next-at-bottom', 'hide-next'
       );
-
       document.body.classList.add('align-' + alignmentClass);
+      alignment = alignmentClass;
 
       if (alignmentClass === 'top') {
         document.body.classList.add('next-at-bottom');
@@ -149,7 +144,21 @@
       }
 
       currentDiv.textContent = current === '---' ? '' : current;
-      nextDiv.textContent = next === '---' ? '' : next;
+      nextDiv.textContent = (next === '---') ? '' : next;
+    }
+
+    function showAccessPointDialog() {
+      if (accessPoints.length === 0) {
+        alert("No hi ha cap punt d'accés.");
+        return;
+      }
+      const menu = accessPoints.map((p, i) => `${i + 1}. ${p.label}`).join('\n');
+      const input = prompt(`Tria un punt d'accés:\n${menu}`);
+      const selectedIndex = parseInt(input) - 1;
+      if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < accessPoints.length) {
+        currentIndex = accessPoints[selectedIndex].index;
+        showSubtitle();
+      }
     }
 
     fileInput.addEventListener('change', function () {
@@ -175,17 +184,7 @@
           break;
         case 'l':
           e.preventDefault();
-          if (accessPoints.length === 0) {
-            alert("No hi ha cap punt d'accés.");
-            return;
-          }
-          const menu = accessPoints.map((p, i) => `${i + 1}. ${p.label}`).join('\n');
-          const input = prompt(`Tria un punt d'accés:\n${menu}`);
-          const selectedIndex = parseInt(input) - 1;
-          if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < accessPoints.length) {
-            currentIndex = accessPoints[selectedIndex].index;
-            showSubtitle();
-          }
+          showAccessPointDialog();
           break;
         case 'q': updateAlignment('top'); break;
         case 'a': updateAlignment('center'); break;
@@ -201,41 +200,66 @@
             updateFontSize();
           }
           break;
-        case 'O':
         case 'o':
+        case 'O':
           e.preventDefault();
           nextDiv.style.display = nextDiv.style.display === 'none' ? 'block' : 'none';
+          break;
+        case 'f':
+        case 'F':
+          setNextGray(grayLevel + 1);
+          break;
+        case 'c':
+        case 'C':
+          setNextGray(grayLevel - 1);
           break;
       }
     });
 
-    // Funcionalitat tàctil
-    document.addEventListener('touchstart', function (e) {
-      if (e.touches.length === 1) {
-        const touch = e.touches[0];
-        const x = touch.clientX;
-        const y = touch.clientY;
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+    document.addEventListener('dblclick', showAccessPointDialog);
 
-        const horMargin = width * 0.2;
-        const verMargin = height * 0.2;
-
-        if (x < horMargin) {
-          if (currentIndex > 0) currentIndex--;
-          showSubtitle();
-        } else if (x > width - horMargin) {
-          if (currentIndex < subtitles.length - 1) currentIndex++;
-          showSubtitle();
-        } else if (y < verMargin) {
-          updateAlignment('top');
-        } else if (y > height - verMargin) {
-          updateAlignment('bottom');
-        }
+    // Gestos arrossegar per canviar mida
+    let dragStartX = null;
+    document.addEventListener('mousedown', (e) => {
+      dragStartX = e.clientX;
+    });
+    document.addEventListener('mouseup', (e) => {
+      if (dragStartX !== null) {
+        const deltaX = e.clientX - dragStartX;
+        handleFontResizeByDrag(deltaX);
+        dragStartX = null;
       }
     });
 
+    let touchStartX = null;
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+      }
+    });
+
+    document.addEventListener('touchend', (e) => {
+      if (touchStartX !== null && e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        handleFontResizeByDrag(deltaX);
+        touchStartX = null;
+      }
+    });
+
+    function handleFontResizeByDrag(deltaX) {
+      if (deltaX > 50) {
+        fontSize += fontStep;
+        updateFontSize();
+      } else if (deltaX < -50) {
+        if (fontSize > 1) {
+          fontSize -= fontStep;
+          updateFontSize();
+        }
+      }
+    }
+
     updateAlignment('top');
+    setNextGray(grayLevel);
   </script>
 </body>
 </html>
