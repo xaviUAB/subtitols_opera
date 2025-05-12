@@ -2,7 +2,7 @@
 <html lang="ca">
 <head>
   <meta charset="UTF-8">
-  <title>Subtítols</title>
+  <title>Subtítols mòbil</title>
   <style>
     body {
       background-color: black;
@@ -23,7 +23,7 @@
       font-size: 0.5em;
     }
 
-    #current {
+    #current, #next {
       position: absolute;
       width: 100%;
       text-align: center;
@@ -32,11 +32,6 @@
     }
 
     #next {
-      position: absolute;
-      width: 100%;
-      text-align: center;
-      padding: 0.5em;
-      white-space: pre-line;
       font-size: 0.5em;
     }
 
@@ -46,7 +41,6 @@
 
     .next-at-top #next { top: 0.5em; }
     .next-at-bottom #next { bottom: 0.5em; }
-
     .hide-next #next { display: none; }
   </style>
 </head>
@@ -65,17 +59,9 @@
     const fileInput = document.getElementById('fileInput');
     const fileInputContainer = document.getElementById('fileInputContainer');
 
-    let subtitles = [];
-    let accessPoints = [];
-    let currentIndex = 0;
-    let fontSize = 4;
-    const fontStep = 0.2;
-    let alignment = 'top';
-
-    // Gestió de grisos: 20 nivells entre blanc (0) i negre (19)
-    let grayLevel = 14; // corresponent a #2e2e2e aprox.
-    const maxGray = 19;
-    const minGray = 0;
+    let subtitles = [], accessPoints = [], currentIndex = 0;
+    let fontSize = 4, fontStep = 0.2, alignment = 'top';
+    let grayLevel = 14, maxGray = 19, minGray = 0;
 
     function setNextGray(level) {
       grayLevel = Math.min(maxGray, Math.max(minGray, level));
@@ -89,21 +75,12 @@
     }
 
     function updateAlignment(alignmentClass) {
-      document.body.classList.remove(
-        'align-top', 'align-center', 'align-bottom',
-        'next-at-top', 'next-at-bottom', 'hide-next'
-      );
+      document.body.classList.remove('align-top', 'align-center', 'align-bottom', 'next-at-top', 'next-at-bottom', 'hide-next');
       document.body.classList.add('align-' + alignmentClass);
       alignment = alignmentClass;
-
-      if (alignmentClass === 'top') {
-        document.body.classList.add('next-at-bottom');
-      } else if (alignmentClass === 'bottom') {
-        document.body.classList.add('next-at-top');
-      } else if (alignmentClass === 'center') {
-        document.body.classList.add('hide-next');
-      }
-
+      if (alignmentClass === 'top') document.body.classList.add('next-at-bottom');
+      else if (alignmentClass === 'bottom') document.body.classList.add('next-at-top');
+      else if (alignmentClass === 'center') document.body.classList.add('hide-next');
       showSubtitle();
     }
 
@@ -111,29 +88,21 @@
       const rawBlocks = text.trim().split(/\n\s*\n/);
       subtitles = [];
       accessPoints = [];
-
       rawBlocks.forEach((block) => {
-        const trimmedBlock = block.trim();
-        if (trimmedBlock.startsWith('*')) {
-          const label = trimmedBlock.replace(/^\*\s*/, '');
-          accessPoints.push({ label, index: subtitles.length });
+        const trimmed = block.trim();
+        if (trimmed.startsWith('*')) {
+          accessPoints.push({ label: trimmed.slice(1).trim(), index: subtitles.length });
         } else {
-          subtitles.push(trimmedBlock);
+          subtitles.push(trimmed);
         }
       });
-
       currentIndex = 0;
       fileInputContainer.style.display = 'none';
       showSubtitle();
     }
 
     function showSubtitle() {
-      if (subtitles.length === 0) {
-        currentDiv.textContent = '';
-        nextDiv.textContent = '';
-        return;
-      }
-
+      if (!subtitles.length) return;
       const current = subtitles[currentIndex];
       let next = '';
       for (let i = currentIndex + 1; i < subtitles.length; i++) {
@@ -142,21 +111,17 @@
           break;
         }
       }
-
       currentDiv.textContent = current === '---' ? '' : current;
-      nextDiv.textContent = (next === '---') ? '' : next;
+      nextDiv.textContent = next === '---' ? '' : next;
     }
 
     function showAccessPointDialog() {
-      if (accessPoints.length === 0) {
-        alert("No hi ha cap punt d'accés.");
-        return;
-      }
+      if (!accessPoints.length) return alert("No hi ha cap punt d'accés.");
       const menu = accessPoints.map((p, i) => `${i + 1}. ${p.label}`).join('\n');
       const input = prompt(`Tria un punt d'accés:\n${menu}`);
-      const selectedIndex = parseInt(input) - 1;
-      if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < accessPoints.length) {
-        currentIndex = accessPoints[selectedIndex].index;
+      const selected = parseInt(input) - 1;
+      if (!isNaN(selected) && selected >= 0 && selected < accessPoints.length) {
+        currentIndex = accessPoints[selected].index;
         showSubtitle();
       }
     }
@@ -165,126 +130,72 @@
       const file = fileInput.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = function (e) {
-          loadSubtitlesFromText(e.target.result);
-        };
-        reader.readAsText(file, 'utf-8');
+        reader.onload = e => loadSubtitlesFromText(e.target.result);
+        reader.readAsText(file);
       }
     });
 
     document.addEventListener('keydown', function(e) {
       switch (e.key) {
-        case 'ArrowRight':
-          if (currentIndex < subtitles.length - 1) currentIndex++;
-          showSubtitle();
-          break;
-        case 'ArrowLeft':
-          if (currentIndex > 0) currentIndex--;
-          showSubtitle();
-          break;
-        case 'l':
-          e.preventDefault();
-          showAccessPointDialog();
-          break;
-        case 'q': updateAlignment('top'); break;
-        case 'a': updateAlignment('center'); break;
-        case 'z': updateAlignment('bottom'); break;
-        case '-':
-          if (fontSize > 1) fontSize -= fontStep;
-          updateFontSize();
-          break;
-        case '+':
-        case '=':
-          if (e.shiftKey || e.key === '+') {
-            fontSize += fontStep;
-            updateFontSize();
-          }
-          break;
-        case 'o':
-        case 'O':
-          e.preventDefault();
-          nextDiv.style.display = nextDiv.style.display === 'none' ? 'block' : 'none';
-          break;
+        case 'ArrowRight': if (currentIndex < subtitles.length - 1) currentIndex++; break;
+        case 'ArrowLeft': if (currentIndex > 0) currentIndex--; break;
+        case 'l': 
+        case 'L': showAccessPointDialog(); break;
+        case 'q': 
+        case 'Q':updateAlignment('top'); break;
+        case 'a':
+        case 'A': updateAlignment('center'); break;
+        case 'z':
+        case 'Z': updateAlignment('bottom'); break;
+        case '-': if (fontSize > 1) fontSize -= fontStep; updateFontSize(); break;
+        case '+': case '=': fontSize += fontStep; updateFontSize(); break;
         case 'f':
-        case 'F':
-          setNextGray(grayLevel + 1);
-          break;
+        case 'F': setNextGray(grayLevel + 1); break;
         case 'c':
-        case 'C':
-          setNextGray(grayLevel - 1);
-          break;
+        case 'C': setNextGray(grayLevel - 1); break;
+        case 'o':  
+        case 'O': e.preventDefault(); nextDiv.style.display = nextDiv.style.display === 'none' ? 'block' : 'none'; break;
       }
+      showSubtitle();
     });
 
-    document.addEventListener('dblclick', showAccessPointDialog);
-
-    // Gestos arrossegar per canviar mida
-    let dragStartX = null;
-    let dragStartY = null;
-    document.addEventListener('mousedown', (e) => {
-      dragStartX = e.clientX;
-      dragStartY = e.clientY;
-    });
-    document.addEventListener('mouseup', (e) => {
-      if (dragStartX !== null && dragStartY !== null) {
-        const deltaX = e.clientX - dragStartX;
-        const deltaY = e.clientY - dragStartY;
-        handleFontResizeByDrag(deltaY);  // Ara és vertical per a mida
-        dragStartX = null;
-        dragStartY = null;
-      }
-    });
-
-    let touchStartX = null;
-    let touchStartY = null;
-    document.addEventListener('touchstart', (e) => {
+    let touchStartX = 0, touchStartY = 0;
+    document.addEventListener('touchstart', e => {
       if (e.touches.length === 1) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
       }
     });
 
-    document.addEventListener('touchend', (e) => {
-      if (touchStartX !== null && touchStartY !== null && e.changedTouches.length === 1) {
-        const deltaX = e.changedTouches[0].clientX - touchStartX;
-        const deltaY = e.changedTouches[0].clientY - touchStartY;
+    document.addEventListener('touchend', e => {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const dx = endX - touchStartX;
+      const dy = endY - touchStartY;
 
-        // Només si el moviment és més horitzontal que vertical
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-          if (Math.abs(deltaX) > 100) {
-            // Gran moviment horitzontal → canvia mida
-            handleFontResizeByDrag(deltaY); // Mida per arrossegar vertical
-          } else if (deltaX > 30) {
-            // Lliscar cap a la dreta → retrocedir
-            if (currentIndex > 0) {
-              currentIndex--;
-              showSubtitle();
-            }
-          } else if (deltaX < -30) {
-            // Lliscar cap a l'esquerra → avançar
-            if (currentIndex < subtitles.length - 1) {
-              currentIndex++;
-              showSubtitle();
-            }
-          }
-        }
-
-        touchStartX = null;
-        touchStartY = null;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 30 && currentIndex > 0) currentIndex--;
+        else if (dx < -30 && currentIndex < subtitles.length - 1) currentIndex++;
+      } else {
+        if (dy > 50) fontSize += fontStep;
+        else if (dy < -50 && fontSize > 1) fontSize -= fontStep;
+        updateFontSize();
       }
+      showSubtitle();
     });
 
-    function handleFontResizeByDrag(deltaY) {
-      if (deltaY > 50) {
-        fontSize += fontStep;
-        updateFontSize();
-      } else if (deltaY < -50) {
-        if (fontSize > 1) {
-          fontSize -= fontStep;
-          updateFontSize();
-        }
-      }
-    }
+    document.addEventListener('dblclick', showAccessPointDialog);
+
+    // Toc llarg per canviar alineació (cicle)
+    let touchTimeout;
+    document.addEventListener('touchstart', e => {
+      touchTimeout = setTimeout(() => {
+        const alignments = ['top', 'center', 'bottom'];
+        const nextAlign = alignments[(alignments.indexOf(alignment) + 1) % alignments.length];
+        updateAlignment(nextAlign);
+      }, 800);
+    });
+    document.addEventListener('touchend', () => clearTimeout(touchTimeout));
 
     updateAlignment('top');
     setNextGray(grayLevel);
