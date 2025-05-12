@@ -6,7 +6,17 @@ Amb aquesta tecla avances a
 la seguent pantalla de visualització
 ->
 
+A la part superior (o inferior)
+veuràs en gris fosc el següent text
+->
+
+Per ocultar-lo,
+prem "O"
+->
+
 * Alineació de text
+
+CANVIAR LA POSICIÓ EN PANTALLA
 
 Amb "A" poses els textos
 al centre de la pantalla
@@ -22,19 +32,21 @@ a la part inferior
 
 * Mida de text
 
+CANVIAR MIDA DE TEXT 
+
 Pots ampliar la lletra amb "+"
 ->
 
 I es redueix la lletra amb "-"
 ->
 
-Si vols accedir a alguna marca de text
-prem "L"
-
 * Creació de fitxers
 
-Per començar, has de crear un fitxer txt
-amb els textos que han de mostrar-se
+CREACIÓ DE FITXERS
+
+Per començar, has de crear
+un fitxer de text "txt"
+amb les frases que han de mostrar-se
 
 No escriguis més de tres files
 
@@ -45,17 +57,27 @@ Si necesites una pantalla sense res
 escriu "---" deixant també
 un salt de línea abans i després
 
+* Marques dins del fitxer
+
+CREAR PUNTS CLAU EN EL FITXER
+
 Les marques dins del fitxer,
 com l'inici d'un acte o una escena,
-els marques amb "* "
+s'indiquen amb "*"
 
 Un exemple seria
 "* Acte I - Escena 1"
-(sense les comentes)
+(sense les cometes)
 
-I si vols retrocedir
+Si vols accedir a alguna marca,
+prem "L" i escriu el número
+de la marca
+
+Si vols retrocedir
 utilitza la tecla
 fletxa esquerra <-
+
+* Crèdits
 
 Aquesta eina ha estat
 dissenyada per a 
@@ -63,4 +85,6 @@ l'Obrador Coral de Rubí
 
 per Xavier Ribes
 OCR 2025
+
+---
 
