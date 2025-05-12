@@ -2,90 +2,167 @@
 <html lang="ca">
 <head>
   <meta charset="UTF-8">
-  <title>Subtítols per esdeveniments en directe</title>
+  <title>Subtítols</title>
   <style>
     body {
       background-color: black;
       color: white;
+      font-family: Arial, sans-serif;
       font-size: 4em;
-      font-family: arial;
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      height: 100vh;
       margin: 0;
-      text-align: center;
-      white-space: pre-line;
-      transition: font-size 0.2s, align-items 0.2s;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
     }
-    #fileInput {
+
+    #fileInputContainer {
       position: absolute;
-      top: 1rem;
-      left: 1rem;
+      top: 1em;
+      left: 1em;
+      z-index: 10;
+      font-size: 0.5em;
     }
-    #subtitle {
-      margin: 1em;
+
+    #current {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      padding: 0.5em;
+      white-space: pre-line;
+    }
+
+    #next {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      padding: 0.5em;
+      white-space: pre-line;
+      color: #2e2e2e; /* Gris molt fosc */
+      font-size: 0.5em;
+    }
+
+    .align-top #current {
+      top: 1em;
+    }
+
+    .align-center #current {
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .align-bottom #current {
+      bottom: 1em;
+    }
+
+    .next-at-top #next {
+      top: 0.5em;
+    }
+
+    .next-at-bottom #next {
+      bottom: 0.5em;
+    }
+
+    .hide-next #next {
+      display: none;
     }
   </style>
 </head>
-<body>
-  <input type="file" id="fileInput" accept=".txt">
-  <div id="subtitle">Carrega un fitxer per començar</div>
+<body class="align-top next-at-bottom">
+  <div id="fileInputContainer">
+    <label for="fileInput">Carrega un fitxer de subtítols:</label>
+    <input type="file" id="fileInput" accept=".txt">
+  </div>
+
+  <div id="current"></div>
+  <div id="next"></div>
 
   <script>
+    const currentDiv = document.getElementById('current');
+    const nextDiv = document.getElementById('next');
     const fileInput = document.getElementById('fileInput');
-    const subtitleDiv = document.getElementById('subtitle');
+    const fileInputContainer = document.getElementById('fileInputContainer');
+
     let subtitles = [];
     let accessPoints = [];
     let currentIndex = 0;
-    let fontSize = 4; // mida inicial en em
+    let fontSize = 4;
+    const fontStep = 0.2;
+    let alignment = 'top';
 
     function updateFontSize() {
       document.body.style.fontSize = fontSize + 'em';
     }
 
-    function setAlignment(position) {
-      document.body.style.alignItems = position;
+    function updateAlignment(alignmentClass) {
+      document.body.classList.remove(
+        'align-top', 'align-center', 'align-bottom',
+        'next-at-top', 'next-at-bottom', 'hide-next'
+      );
+
+      document.body.classList.add('align-' + alignmentClass);
+      alignment = alignmentClass;
+
+      if (alignmentClass === 'top') {
+        document.body.classList.add('next-at-bottom');
+      } else if (alignmentClass === 'bottom') {
+        document.body.classList.add('next-at-top');
+      } else if (alignmentClass === 'center') {
+        document.body.classList.add('hide-next');
+      }
+
+      showSubtitle();
     }
 
-    fileInput.addEventListener('change', function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    function loadSubtitlesFromText(text) {
+      const rawBlocks = text.trim().split(/\n\s*\n/);
+      subtitles = [];
+      accessPoints = [];
 
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const text = e.target.result;
-        const rawBlocks = text.trim().split(/\n\s*\n/);
+      rawBlocks.forEach((block) => {
+        const trimmedBlock = block.trim();
+        if (trimmedBlock.startsWith('*')) {
+          const label = trimmedBlock.replace(/^\*\s*/, '');
+          accessPoints.push({ label, index: subtitles.length });
+        } else {
+          subtitles.push(trimmedBlock);
+        }
+      });
 
-        subtitles = [];
-        accessPoints = [];
-
-        rawBlocks.forEach((block) => {
-          const trimmedBlock = block.trim();
-          if (trimmedBlock.startsWith('*')) {
-            const label = trimmedBlock.replace(/^\*\s*/, '');
-            accessPoints.push({ label, index: subtitles.length });
-          } else {
-            subtitles.push(trimmedBlock);
-          }
-        });
-
-        currentIndex = 0;
-        fileInput.remove();
-        showSubtitle();
-      };
-      reader.readAsText(file, 'utf-8');
-    });
+      currentIndex = 0;
+      fileInputContainer.style.display = 'none';
+      showSubtitle();
+    }
 
     function showSubtitle() {
       if (subtitles.length === 0) {
-        subtitleDiv.textContent = '';
+        currentDiv.textContent = '';
+        nextDiv.textContent = '';
         return;
       }
 
-      const content = subtitles[currentIndex];
-      subtitleDiv.textContent = content === '---' ? '' : content;
+      const current = subtitles[currentIndex];
+      let next = '';
+      for (let i = currentIndex + 1; i < subtitles.length; i++) {
+        if (!subtitles[i].startsWith('*')) {
+          next = subtitles[i];
+          break;
+        }
+      }
+
+      currentDiv.textContent = current === '---' ? '' : current;
+      nextDiv.textContent = (next === '---') ? '' : next;
     }
+
+    fileInput.addEventListener('change', function () {
+      const file = fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          loadSubtitlesFromText(e.target.result);
+        };
+        reader.readAsText(file, 'utf-8');
+      }
+    });
 
     document.addEventListener('keydown', function(e) {
       switch (e.key) {
@@ -97,7 +174,7 @@
           if (currentIndex > 0) currentIndex--;
           showSubtitle();
           break;
-        case 'l': // mostra llista de punts d'accés
+        case 'l':
           e.preventDefault();
           if (accessPoints.length === 0) {
             alert("No hi ha cap punt d'accés.");
@@ -111,29 +188,29 @@
             showSubtitle();
           }
           break;
-        case 'q': // superior
-          setAlignment('flex-start');
-          break;
-        case 'a': // centrat
-          setAlignment('center');
-          break;
-        case 'z': // inferior
-          setAlignment('flex-end');
-          break;
-        case '-': // redueix mida
-          if (fontSize > 1) fontSize -= 0.5;
+        case 'q': updateAlignment('top'); break;
+        case 'a': updateAlignment('center'); break;
+        case 'z': updateAlignment('bottom'); break;
+        case '-':
+          if (fontSize > 1) fontSize -= fontStep;
           updateFontSize();
           break;
         case '+':
-        case '=': // compatible amb Shift+'=' per fer '+'
+        case '=':
           if (e.shiftKey || e.key === '+') {
-            fontSize += 0.5;
+            fontSize += fontStep;
             updateFontSize();
           }
           break;
+        case 'O':
+        case 'o':
+          e.preventDefault();
+          nextDiv.style.display = nextDiv.style.display === 'none' ? 'block' : 'none';
+          break;
       }
     });
-   
+
+    updateAlignment('top');
   </script>
 </body>
 </html>
