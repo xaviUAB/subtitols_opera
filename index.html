@@ -13,6 +13,7 @@
       height: 100vh;
       overflow: hidden;
       position: relative;
+      touch-action: manipulation;
     }
 
     #fileInputContainer {
@@ -37,7 +38,7 @@
       text-align: center;
       padding: 0.5em;
       white-space: pre-line;
-      color: #2e2e2e; /* Gris molt fosc */
+      color: #2e2e2e;
       font-size: 0.5em;
     }
 
@@ -87,7 +88,6 @@
     let currentIndex = 0;
     let fontSize = 4;
     const fontStep = 0.2;
-    let alignment = 'top';
 
     function updateFontSize() {
       document.body.style.fontSize = fontSize + 'em';
@@ -100,7 +100,6 @@
       );
 
       document.body.classList.add('align-' + alignmentClass);
-      alignment = alignmentClass;
 
       if (alignmentClass === 'top') {
         document.body.classList.add('next-at-bottom');
@@ -150,7 +149,7 @@
       }
 
       currentDiv.textContent = current === '---' ? '' : current;
-      nextDiv.textContent = (next === '---') ? '' : next;
+      nextDiv.textContent = next === '---' ? '' : next;
     }
 
     fileInput.addEventListener('change', function () {
@@ -207,6 +206,32 @@
           e.preventDefault();
           nextDiv.style.display = nextDiv.style.display === 'none' ? 'block' : 'none';
           break;
+      }
+    });
+
+    // Funcionalitat tàctil
+    document.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const x = touch.clientX;
+        const y = touch.clientY;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        const horMargin = width * 0.2;
+        const verMargin = height * 0.2;
+
+        if (x < horMargin) {
+          if (currentIndex > 0) currentIndex--;
+          showSubtitle();
+        } else if (x > width - horMargin) {
+          if (currentIndex < subtitles.length - 1) currentIndex++;
+          showSubtitle();
+        } else if (y < verMargin) {
+          updateAlignment('top');
+        } else if (y > height - verMargin) {
+          updateAlignment('bottom');
+        }
       }
     });
 
