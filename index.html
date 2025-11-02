@@ -2,17 +2,25 @@
 <html lang="ca">
 <head>
   <meta charset="UTF-8">
-  <title>Subtítols mòbil</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subtítols Òpera</title>
   <style>
     body {
       background-color: black;
       color: white;
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', sans-serif; /* Font Inter per defecte */
       font-size: 4em;
       margin: 0;
       height: 100vh;
       overflow: hidden;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 0.5rem; /* Vores arrodonides */
+      cursor: default; /* Cursor per defecte visible */
+      transition: cursor 0.2s ease-in-out; /* Transició suau per al cursor */
     }
 
     #fileInputContainer {
@@ -21,27 +29,96 @@
       left: 1em;
       z-index: 10;
       font-size: 0.5em;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 0.5em 1em;
+      border-radius: 0.5rem; /* Vores arrodonides */
+    }
+
+    #fileInputContainer label {
+      color: white;
+    }
+
+    #fileInput {
+      background-color: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 0.3rem; /* Vores arrodonides */
+      padding: 0.2em;
+      color: white;
     }
 
     #current, #next {
       position: absolute;
-      width: 100%;
+      width: 90%; /* Utilitza amplada fluida */
       text-align: center;
       padding: 0.5em;
-      white-space: pre-line;
+      white-space: pre-line; /* Per respectar els salts de línia dins d'un bloc */
+      box-sizing: border-box; /* Inclou padding i border en l'amplada total */
     }
 
     #next {
       font-size: 0.5em;
     }
 
-    .align-top #current { top: 1em; }
+    /* Classes d'alineació per al subtítol actual */
+    /* Les propietats 'top' i 'bottom' seran gestionades per JS */
+    .align-top #current { /* top serà dinàmic */ }
     .align-center #current { top: 50%; transform: translateY(-50%); }
-    .align-bottom #current { bottom: 1em; }
+    .align-bottom #current { /* bottom serà dinàmic */ }
 
-    .next-at-top #next { top: 0.5em; }
-    .next-at-bottom #next { bottom: 0.5em; }
-    .hide-next #next { display: none; }
+    /* Classes d'alineació per al subtítol següent */
+    /* Les propietats 'top' i 'bottom' seran gestionades per JS */
+    .next-at-top #next { /* top serà dinàmic */ }
+    .next-at-bottom #next { /* bottom serà dinàmic */ }
+    /* La classe hide-next ja no s'afegeix quan el principal és al centre */
+
+    /* Estils per als colors dels personatges - clars i contrastats */
+    .color-0 { color: #ADD8E6; } /* Blau clar - ja no s'utilitza amb el nou esquema de colors, però es manté per si de cas */
+    .color-1 { color: #FFFFFF; } /* Blanc */
+    .color-2 { color: #FFC0CB; } /* Rosa */
+    .color-3 { color: #ADD8E6; } /* Blau */
+    .color-4 { color: #90EE90; } /* Verd */
+    .color-5 { color: #F0E68C; } /* Groc suau (Khaki) */
+    .color-6 { color: #FFCC99; } /* Taronja suau (Peach) */
+
+    /* Estils per al botó de pantalla completa */
+    #fullscreenButton {
+      position: absolute;
+      top: 1em;
+      right: 1em;
+      z-index: 10;
+      font-size: 0.5em;
+      padding: 0.5em 1em;
+      background-color: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #fullscreenButton:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+
+    /* Responsive design per a pantalles petites */
+    @media (max-width: 768px) {
+      body {
+        font-size: 2.5em; /* Redueix la mida de la font per a mòbils */
+      }
+      #fileInputContainer {
+        font-size: 0.4em;
+        padding: 0.3em 0.6em;
+      }
+      #current, #next {
+        width: 95%; /* Més amplada per a mòbils */
+        padding: 0.3em;
+      }
+      #fullscreenButton {
+        font-size: 0.4em;
+        padding: 0.4em 0.8em;
+      }
+    }
   </style>
 </head>
 <body class="align-top next-at-bottom">
@@ -49,6 +126,8 @@
     <label for="fileInput">Carrega un fitxer de subtítols:</label>
     <input type="file" id="fileInput" accept=".txt">
   </div>
+
+  <button id="fullscreenButton">Pantalla Completa</button>
 
   <div id="current"></div>
   <div id="next"></div>
@@ -58,65 +137,324 @@
     const nextDiv = document.getElementById('next');
     const fileInput = document.getElementById('fileInput');
     const fileInputContainer = document.getElementById('fileInputContainer');
+    const fullscreenButton = document.getElementById('fullscreenButton');
 
-    let subtitles = [], accessPoints = [], currentIndex = 0;
-    let fontSize = 4, fontStep = 0.2, alignment = 'top';
-    let grayLevel = 14, maxGray = 19, minGray = 0;
 
-    function setNextGray(level) {
-      grayLevel = Math.min(maxGray, Math.max(minGray, level));
-      const value = Math.round(255 - (grayLevel * (255 / maxGray)));
-      const hex = value.toString(16).padStart(2, '0');
-      nextDiv.style.color = `#${hex}${hex}${hex}`;
+    let subtitles = [];          // Array per emmagatzemar tots els blocs de subtítols
+    let accessPoints = [];       // Array per emmagatzemar els punts d'accés (marcadors)
+    let currentIndex = 0;        // Índex del bloc de subtítols actual
+    let fontSize = 4;            // Mida de la font en 'em'
+    const fontStep = 0.2;        // Pas per canviar la mida de la font
+    let alignment = 'top';       // Alineació del subtítol actual: 'top', 'center', 'bottom'
+    let nextTextPosition = 'bottom'; // Posició del text 'next': 'top' o 'bottom'
+    let grayLevel = 10;          // Nivell de gris per al subtítol següent (inici al 50% de brillantor)
+    const maxGray = 19;          // Nivell màxim de gris (correspon a negre)
+    const minGray = 0;           // Nivell mínim de gris (correspon a blanc)
+    let colorMap = {};           // Mapa per emmagatzemar els colors dels personatges
+    let lastAppliedColorClass = ''; // Manté la darrera classe de color aplicada per a la persistència entre línies/blocs
+
+    // Variables per controlar el padding vertical
+    let verticalPaddingMultiplier = 1.0;
+    const verticalPaddingBase = 1; // Base per a currentDiv, en em
+    const nextVerticalPaddingBase = 0.5; // Base per a nextDiv, en em
+    const verticalPaddingStep = 0.1;
+    const minPaddingMultiplier = 0.2; // Multiplicador mínim per evitar solapaments o valors negatius
+    const maxPaddingMultiplier = 5.0; // Multiplicador màxim per a un padding raonable
+
+    // Variables per al control del cursor
+    let cursorTimeout;
+    const INACTIVITY_TIME = 5000; // 5 segons
+
+    /**
+     * Oculta el cursor.
+     */
+    function hideCursor() {
+      document.body.style.cursor = 'none';
+      fileInputContainer.style.opacity = '0'; // Amaga l'input del fitxer
+      fullscreenButton.style.opacity = '0'; // Amaga el botó de pantalla completa
     }
 
+    /**
+     * Mostra el cursor i reinicia el temporitzador.
+     */
+    function showCursor() {
+      clearTimeout(cursorTimeout);
+      document.body.style.cursor = 'default';
+      fileInputContainer.style.opacity = '1'; // Mostra l'input del fitxer
+      // Mostra el botó de pantalla completa només si no estem en pantalla completa
+      if (!document.fullscreenElement) {
+        fullscreenButton.style.opacity = '1';
+      }
+      cursorTimeout = setTimeout(hideCursor, INACTIVITY_TIME);
+    }
+
+    /**
+     * Defineix la brillantor del text següent utilitzant un filtre CSS.
+     * El nivell 0 correspon a 100% de brillantor (blanc), i el nivell 19 a 0% (negre).
+     * @param {number} level - El nivell de gris desitjat (0-19).
+     */
+    function setNextGray(level) {
+      grayLevel = Math.min(maxGray, Math.max(minGray, level));
+      // Calculem el factor de brillantor: 1.0 (blanc) a 0.0 (negre)
+      const brightnessFactor = (maxGray - grayLevel) / maxGray;
+      nextDiv.style.filter = `brightness(${brightnessFactor})`;
+    }
+
+    /**
+     * Actualitza la mida de la font del cos del document.
+     */
     function updateFontSize() {
       document.body.style.fontSize = fontSize + 'em';
     }
 
-    function updateAlignment(alignmentClass) {
-      document.body.classList.remove('align-top', 'align-center', 'align-bottom', 'next-at-top', 'next-at-bottom', 'hide-next');
-      document.body.classList.add('align-' + alignmentClass);
-      alignment = alignmentClass;
-      if (alignmentClass === 'top') document.body.classList.add('next-at-bottom');
-      else if (alignmentClass === 'bottom') document.body.classList.add('next-at-top');
-      else if (alignmentClass === 'center') document.body.classList.add('hide-next');
-      showSubtitle();
+    /**
+     * Aplica la distància vertical (padding) als elements #current i #next.
+     * Gestiona les propietats 'top' i 'bottom' directament amb JavaScript.
+     */
+    function applyVerticalPadding() {
+        // Neteja els estils inline previs per evitar conflictes
+        currentDiv.style.top = '';
+        currentDiv.style.bottom = '';
+        nextDiv.style.top = '';
+        nextDiv.style.bottom = '';
+
+        // Aplica el padding al subtítol actual segons l'alineació
+        if (document.body.classList.contains('align-top')) {
+            currentDiv.style.top = `${verticalPaddingBase * verticalPaddingMultiplier}em`;
+        } else if (document.body.classList.contains('align-bottom')) {
+            currentDiv.style.bottom = `${verticalPaddingBase * verticalPaddingMultiplier}em`;
+        }
+        // Per 'align-center', el posicionament es gestiona per CSS amb transform
+
+        // Aplica el padding al subtítol següent segons la posició de nextTextPosition
+        if (nextTextPosition === 'top') {
+            nextDiv.style.top = `${nextVerticalPaddingBase * verticalPaddingMultiplier}em`;
+        } else if (nextTextPosition === 'bottom') {
+            nextDiv.style.bottom = `${nextVerticalPaddingBase * verticalPaddingMultiplier}em`;
+        }
     }
 
+    /**
+     * Actualitza l'alineació del subtítol.
+     * @param {string} alignmentClass - La classe d'alineació a aplicar ('top', 'center', 'bottom').
+     */
+    function updateAlignment(alignmentClass) {
+      // Neteja totes les classes d'alineació existents
+      document.body.classList.remove('align-top', 'align-center', 'align-bottom', 'next-at-top', 'next-at-bottom', 'hide-next');
+      // Afegeix la nova classe d'alineació per al subtítol actual
+      document.body.classList.add('align-' + alignmentClass);
+      alignment = alignmentClass; // Actualitza la variable d'estat de l'alineació
+
+      // Defineix l'alineació del subtítol següent en funció de l'actual
+      // nextTextPosition es manté per recordar on ha d'anar el text 'next'
+      if (alignmentClass === 'top') {
+          document.body.classList.add('next-at-bottom');
+          nextTextPosition = 'bottom';
+      } else if (alignmentClass === 'bottom') {
+          document.body.classList.add('next-at-top');
+          nextTextPosition = 'top';
+      } else if (alignmentClass === 'center') {
+          // Quan el text actual és al centre, el text 'next' no s'amaga.
+          // Utilitzem la última posició coneguda (nextTextPosition) per aplicar la classe.
+          document.body.classList.add(`next-at-${nextTextPosition}`);
+          // no afegim 'hide-next'
+      }
+      showSubtitle(); // Torna a mostrar el subtítol amb la nova alineació
+      applyVerticalPadding(); // Aplica el padding vertical després de canviar l'alineació
+    }
+
+    /**
+     * Carrega els subtítols i els punts d'accés d'un text donat.
+     * Processa la informació de color dels personatges al principi del fitxer
+     * i divideix el text en blocs basats en línies en blanc.
+     * @param {string} text - El contingut del fitxer de subtítols.
+     */
     function loadSubtitlesFromText(text) {
-      const rawBlocks = text.trim().split(/\n\s*\n/);
+      const allLines = text.split('\n');
       subtitles = [];
       accessPoints = [];
+      colorMap = {}; // Reinicia el mapa de colors
+      lastAppliedColorClass = ''; // Reinicia la classe de color aplicada en carregar un nou fitxer
+
+      let parsingColors = true;
+      let contentStartLine = 0; // Per saber on comença el contingut real dels subtítols
+
+      for (let i = 0; i < allLines.length; i++) {
+        const line = allLines[i];
+        const trimmed = line.trim();
+
+        if (parsingColors) {
+          if (trimmed.startsWith('@') && trimmed.length > 1) { // Línia de definició de color
+            const match = trimmed.match(/^@(\d+)\s+([A-Za-z0-9#]+)\s*-\s*(.+)/);
+            if (match) {
+              const index = match[1];
+              // Colors predefinits segons la petició de l'usuari
+              const predefinedColors = {
+                '1': '#FFFFFF', // Blanc
+                '2': '#FFC0CB', // Rosa
+                '3': '#ADD8E6', // Blau
+                '4': '#90EE90', // Verd
+                '5': '#F0E68C', // Groc suau (Khaki)
+                '6': '#FFCC99'  // Taronja suau (Peach)
+              };
+              const color = predefinedColors[index] || '#FFFFFF'; // Blanc per defecte si no es troba el color
+
+              colorMap[index] = color;
+
+              // Crea una regla CSS dinàmica per a la classe de color
+              const styleSheet = document.styleSheets[0];
+              const className = `color-${index}`;
+              let ruleExists = false;
+              for (let j = 0; j < styleSheet.cssRules.length; j++) {
+                  if (styleSheet.cssRules[j].selectorText === `.${className}`) {
+                      ruleExists = true;
+                      break;
+                  }
+              }
+              if (!ruleExists) {
+                  styleSheet.insertRule(`.${className} { color: ${color}; }`, styleSheet.cssRules.length);
+              }
+            }
+          } else if (trimmed === '---') { // Delimitador de la secció de colors
+            parsingColors = false;
+            contentStartLine = i + 1; // El contingut comença després d'aquest '---'
+            break; // Surt del bucle un cop trobat el delimitador
+          }
+        }
+      }
+
+      // Processa les línies de contingut en blocs
+      const contentText = allLines.slice(contentStartLine).join('\n');
+      // Filtra els blocs buits després de la divisió
+      const rawBlocks = contentText.split(/\n\s*\n/).filter(block => block.trim() !== '');
+
       rawBlocks.forEach((block) => {
-        const trimmed = block.trim();
-        if (trimmed.startsWith('*')) {
-          accessPoints.push({ label: trimmed.slice(1).trim(), index: subtitles.length });
+        const trimmedBlock = block.trim();
+        // Aquesta comprovació addicional assegura que si hi ha blocs buits després del filtre
+        // (p. ex., si un bloc només tenia espais), no s'afegeixin.
+        if (trimmedBlock === '') {
+            return;
+        }
+        if (trimmedBlock.startsWith('*')) {
+          accessPoints.push({ label: trimmedBlock.slice(1).trim(), index: subtitles.length });
         } else {
-          subtitles.push(trimmed);
+          subtitles.push(trimmedBlock); // Cada element de 'subtitles' és ara un bloc de text
         }
       });
+
       currentIndex = 0;
-      fileInputContainer.style.display = 'none';
-      showSubtitle();
+      fileInputContainer.style.display = 'none'; // Amaga el contenidor de l'input un cop carregat el fitxer
+      showSubtitle(); // Mostra el primer subtítol
     }
 
+    /**
+     * Mostra el bloc de subtítols actual i el següent, aplicant colors per línia
+     * El color persisteix dins del bloc fins que es troba un nou codi de color.
+     */
     function showSubtitle() {
-      if (!subtitles.length) return;
-      const current = subtitles[currentIndex];
-      let next = '';
+      if (!subtitles.length) return; // Si no hi ha subtítols, no facis res
+
+      // Neteja les classes de color del subtítol actual (a nivell de div)
+      currentDiv.className = '';
+
+      let currentBlockContent = subtitles[currentIndex];
+      let currentBlockLines = currentBlockContent.split('\n');
+      let htmlContent = '';
+      let currentColorClassForLine = lastAppliedColorClass; // Comença amb el darrer color aplicat globalment
+
+      currentBlockLines.forEach(line => {
+        let lineText = line.trim();
+        let displayLine = lineText;
+
+        const colorCodeMatch = lineText.match(/^@(\d+)\s*(.*)/);
+        if (colorCodeMatch) {
+          const colorIndex = colorCodeMatch[1];
+          const actualLineText = colorCodeMatch[2];
+          if (colorMap[colorIndex]) {
+            currentColorClassForLine = `color-${colorIndex}`; // S'ha trobat un nou color per aquesta línia
+            displayLine = actualLineText; // Mostra la línia sense el codi @X
+          }
+        }
+
+        if (displayLine === '---') {
+          htmlContent += ''; // No afegeix res si la línia és "---"
+        } else {
+          if (currentColorClassForLine) {
+            htmlContent += `<span class="${currentColorClassForLine}">${displayLine}</span><br>`;
+          } else {
+            htmlContent += `<span>${displayLine}</span><br>`; // Per defecte, blanc si no hi ha color definit
+          }
+        }
+      });
+
+      currentDiv.innerHTML = htmlContent;
+
+      // Actualitza el `lastAppliedColorClass` global per al següent bloc o línia
+      lastAppliedColorClass = currentColorClassForLine;
+
+
+      // PROCESSAMENT DEL BLOC SEGÜENT (nextDiv)
+      let nextBlockContent = '';
+      let nextBlockFound = false;
+      let nextCurrentColorClass = lastAppliedColorClass; // Comença amb el color del bloc actual
+
       for (let i = currentIndex + 1; i < subtitles.length; i++) {
-        if (!subtitles[i].startsWith('*')) {
-          next = subtitles[i];
+        const blockCandidate = subtitles[i];
+        if (blockCandidate.trim().startsWith('*')) {
+          continue; // Ignora els marcadors
+        } else if (blockCandidate.trim() === '---') {
+          nextBlockContent = ''; // Si és un delimitador, el bloc següent és buit
+          nextBlockFound = true;
+          break;
+        } else {
+          nextBlockContent = blockCandidate;
+          nextBlockFound = true;
           break;
         }
       }
-      currentDiv.textContent = current === '---' ? '' : current;
-      nextDiv.textContent = next === '---' ? '' : next;
+
+      let nextHtmlContent = '';
+      if (nextBlockFound) {
+        const nextBlockLines = nextBlockContent.split('\n');
+        nextBlockLines.forEach(line => {
+          let lineText = line.trim();
+          let displayLine = lineText;
+
+          const colorCodeMatch = lineText.match(/^@(\d+)\s*(.*)/);
+          if (colorCodeMatch) {
+            const colorIndex = colorCodeMatch[1];
+            const actualLineText = colorCodeMatch[2];
+            if (colorMap[colorIndex]) {
+              nextCurrentColorClass = `color-${colorIndex}`; // S'ha trobat un nou color per aquesta línia al nextDiv
+              displayLine = actualLineText; // Mostra la línia sense el codi @X
+            }
+          }
+
+          if (displayLine === '---') {
+            nextHtmlContent += ''; // No afegeix res si la línia és "---"
+          } else {
+            if (nextCurrentColorClass) {
+              nextHtmlContent += `<span class="${nextCurrentColorClass}">${displayLine}</span><br>`;
+            } else {
+              nextHtmlContent += `<span>${displayLine}</span><br>`; // Per defecte, blanc
+            }
+          }
+        });
+      }
+      nextDiv.innerHTML = nextHtmlContent;
+      // Aplica el nivell de gris inicial o ajustat al nextDiv.
+      // S'ha de cridar setNextGray després de omplir el nextDiv.innerHTML
+      setNextGray(grayLevel);
     }
 
+    /**
+     * Mostra un diàleg per seleccionar un punt d'accés i navega fins a ell.
+     */
     function showAccessPointDialog() {
-      if (!accessPoints.length) return alert("No hi ha cap punt d'accés.");
+      if (!accessPoints.length) {
+        showMessage("No hi ha cap punt d'accés.", 3000); // Mostra el missatge durant 3 segons
+        return;
+      }
       const menu = accessPoints.map((p, i) => `${i + 1}. ${p.label}`).join('\n');
       const input = prompt(`Tria un punt d'accés:\n${menu}`);
       const selected = parseInt(input) - 1;
@@ -126,6 +464,49 @@
       }
     }
 
+    /**
+     * Mostra un missatge temporal al centre de la pantalla.
+     * @param {string} message - El missatge a mostrar.
+     * @param {number} duration - La durada en mil·lisegons.
+     */
+    function showMessage(message, duration) {
+      let messageBox = document.getElementById('messageBox');
+      if (!messageBox) {
+        messageBox = document.createElement('div');
+        messageBox.id = 'messageBox';
+        messageBox.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background-color: rgba(0, 0, 0, 0.7);
+          color: white;
+          padding: 1em 2em;
+          border-radius: 0.5rem;
+          z-index: 1000;
+          opacity: 0;
+          transition: opacity 0.3s ease-in-out;
+          font-size: 0.8em;
+          text-align: center;
+        `;
+        document.body.appendChild(messageBox);
+      }
+      messageBox.textContent = message;
+      messageBox.style.opacity = '1';
+
+      setTimeout(() => {
+        messageBox.style.opacity = '0';
+        // Opcional: eliminar el quadre de missatge després de la transició
+        setTimeout(() => {
+          if (messageBox.parentNode) {
+            messageBox.parentNode.removeChild(messageBox);
+          }
+        }, 300); // Durada de la transició
+      }, duration);
+    }
+
+
+    // Escoltar el canvi al fitxer d'entrada
     fileInput.addEventListener('change', function () {
       const file = fileInput.files[0];
       if (file) {
@@ -135,32 +516,57 @@
       }
     });
 
+    // Escoltar esdeveniments de teclat per a la navegació i control
     document.addEventListener('keydown', function(e) {
+      // showCursor(); // Ja no cridem showCursor aquí
       switch (e.key) {
-        case 'ArrowRight': if (currentIndex < subtitles.length - 1) currentIndex++; break;
-        case 'ArrowLeft': if (currentIndex > 0) currentIndex--; break;
-        case 'l': 
-        case 'L': showAccessPointDialog(); break;
-        case 'q': 
-        case 'Q':updateAlignment('top'); break;
-        case 'a':
-        case 'A': updateAlignment('center'); break;
-        case 'z':
-        case 'Z': updateAlignment('bottom'); break;
-        case '-': if (fontSize > 1) fontSize -= fontStep; updateFontSize(); break;
-        case '+': case '=': fontSize += fontStep; updateFontSize(); break;
-        case 'f':
-        case 'F': setNextGray(grayLevel + 1); break;
-        case 'c':
-        case 'C': setNextGray(grayLevel - 1); break;
-        case 'o':  
-        case 'O': e.preventDefault(); nextDiv.style.display = nextDiv.style.display === 'none' ? 'block' : 'none'; break;
+        case 'ArrowRight': // Fletxa dreta: següent subtítol
+          if (currentIndex < subtitles.length - 1) currentIndex++;
+          break;
+        case 'ArrowLeft': // Fletxa esquerra: subtítol anterior
+          if (currentIndex > 0) currentIndex--;
+          break;
+        case 'l': case 'L': // 'L' o 'l': mostra diàleg de punts d'accés
+          showAccessPointDialog();
+          break;
+        case 'q': case 'Q': updateAlignment('top'); break;      // 'Q' o 'q': alinear a dalt
+        case 'a': case 'A': updateAlignment('center'); break;   // 'A' o 'a': alinear al centre
+        case 'z': case 'Z': updateAlignment('bottom'); break;   // 'Z' o 'z': alinear a baix
+        case '-': // '-': redueix la mida de la font o distància vertical
+          if (e.ctrlKey) { // Control -: Disminueix la distància vertical
+            verticalPaddingMultiplier = Math.max(minPaddingMultiplier, verticalPaddingMultiplier - verticalPaddingStep);
+            applyVerticalPadding();
+            e.preventDefault(); // Evita el zoom del navegador
+          } else { // Sense Control: Redueix la mida de la font
+            if (fontSize > 1) fontSize -= fontStep;
+            updateFontSize();
+          }
+          break;
+        case '+': case '=': // '+': augmenta la mida de la font o distància vertical
+          if (e.ctrlKey) { // Control +: Augmenta la distància vertical
+            verticalPaddingMultiplier = Math.min(maxPaddingMultiplier, verticalPaddingMultiplier + verticalPaddingStep);
+            applyVerticalPadding();
+            e.preventDefault(); // Evita el zoom del navegador
+          } else { // Sense Control: Augmenta la mida de la font
+            fontSize += fontStep;
+            updateFontSize();
+          }
+          break;
+        case 'f': case 'F': setNextGray(grayLevel + 1); break; // 'F' o 'f': enfosqueix el subtítol següent (augmenta grayLevel cap a negre)
+        case 'c': case 'C': setNextGray(grayLevel - 1); break; // 'C' o 'c': aclareix el subtítol següent (disminueix grayLevel cap a blanc)
+        case 'o': case 'O': // 'O' o 'o': mostra/amaga el subtítol següent
+          e.preventDefault(); // Evita el comportament per defecte del navegador
+          nextDiv.style.display = nextDiv.style.display === 'none' ? 'block' : 'none';
+          break;
       }
-      showSubtitle();
+      showSubtitle(); // Torna a mostrar el subtítol després de qualsevol canvi
     });
 
+    // Gestió d'esdeveniments tàctils per a dispositius mòbils
     let touchStartX = 0, touchStartY = 0;
+
     document.addEventListener('touchstart', e => {
+      showCursor(); // Cada vegada que es toca la pantalla, mostrar el cursor
       if (e.touches.length === 1) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
@@ -168,37 +574,86 @@
     });
 
     document.addEventListener('touchend', e => {
+      showCursor(); // Cada vegada que es deixa de tocar la pantalla, mostrar el cursor
       const endX = e.changedTouches[0].clientX;
       const endY = e.changedTouches[0].clientY;
       const dx = endX - touchStartX;
       const dy = endY - touchStartY;
 
+      // Detecta el desplaçament horitzontal per canviar de subtítol
       if (Math.abs(dx) > Math.abs(dy)) {
-        if (dx > 30 && currentIndex > 0) currentIndex--;
-        else if (dx < -30 && currentIndex < subtitles.length - 1) currentIndex++;
+        if (dx > 30 && currentIndex > 0) currentIndex--; // Lliscar a la dreta
+        else if (dx < -30 && currentIndex < subtitles.length - 1) currentIndex++; // Lliscar a l'esquerra
       } else {
-        if (dy > 50) fontSize += fontStep;
-        else if (dy < -50 && fontSize > 1) fontSize -= fontStep;
+        // Detecta el desplaçament vertical per canviar la mida de la font
+        if (dy > 50) fontSize += fontStep; // Lliscar cap avall
+        else if (dy < -50 && fontSize > 1) fontSize -= fontStep; // Lliscar cap amunt
         updateFontSize();
       }
       showSubtitle();
     });
 
+    // Doble clic per mostrar el diàleg de punts d'accés
     document.addEventListener('dblclick', showAccessPointDialog);
 
-    // Toc llarg per canviar alineació (cicle)
+    // Toc llarg per canviar l'alineació (cicle: top -> center -> bottom -> top)
     let touchTimeout;
     document.addEventListener('touchstart', e => {
-      touchTimeout = setTimeout(() => {
-        const alignments = ['top', 'center', 'bottom'];
-        const nextAlign = alignments[(alignments.indexOf(alignment) + 1) % alignments.length];
-        updateAlignment(nextAlign);
-      }, 800);
+      // Només un toc
+      if (e.touches.length === 1) {
+        touchTimeout = setTimeout(() => {
+          const alignments = ['top', 'center', 'bottom'];
+          const nextAlign = alignments[(alignments.indexOf(alignment) + 1) % alignments.length];
+          updateAlignment(nextAlign);
+        }, 800); // 800 ms per detectar un "toc llarg"
+      }
     });
-    document.addEventListener('touchend', () => clearTimeout(touchTimeout));
 
-    updateAlignment('top');
-    setNextGray(grayLevel);
+    document.addEventListener('touchend', () => clearTimeout(touchTimeout)); // Cancel·la el toc llarg si s'aixeca el dit abans de temps
+
+    // Funció per activar el mode de pantalla completa
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error(`Error a l'intentar entrar a pantalla completa: ${err.message}`);
+          // Missatge més informatiu per a l'usuari sobre la restricció
+          showMessage("No s'ha pogut activar la pantalla completa. Això sol passar per restriccions del navegador o de l'entorn on s'executa l'aplicació.", 6000);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Assignar l'esdeveniment de clic al botó de pantalla completa
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+
+    // Escoltar canvis en l'estat de la pantalla completa
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement) {
+        // Estem en pantalla completa, amaguem el botó i l'input del fitxer
+        fullscreenButton.style.display = 'none';
+        fileInputContainer.style.display = 'none';
+      } else {
+        // Hem sortit de pantalla completa, mostrem el botó i l'input del fitxer
+        fullscreenButton.style.display = 'block';
+        // Només mostrem el fileInputContainer si no hi ha subtítols carregats
+        if (subtitles.length === 0) {
+            fileInputContainer.style.display = 'block';
+        }
+      }
+      showCursor(); // Mostrar el cursor en sortir/entrar de pantalla completa per reiniciar el temporitzador
+    });
+
+    // Escoltar el moviment del ratolí per mostrar el cursor i reiniciar el temporitzador
+    document.addEventListener('mousemove', showCursor);
+
+    // Inicialització
+    updateAlignment('top'); // Defineix l'alineació inicial a dalt
+    setNextGray(grayLevel); // Defineix el nivell de gris inicial per al subtítol següent
+    applyVerticalPadding(); // Crida inicial per aplicar el padding
+    showCursor(); // Inicia el temporitzador per ocultar el cursor
   </script>
 </body>
 </html>
