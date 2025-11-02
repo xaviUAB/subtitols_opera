@@ -1,13 +1,26 @@
-Instruccions de l'eina subtitols
-----------------
+@1 Blanc - Personatge 1
+@2 Rosa - Personatge 2
+@3 Blau - Personatge 3
+@4 Verd - Personatge 4
+@5 Groc - Personatge 5
+@6 Taronja - Personatge 6
+
+---
+
+@1Instruccions de l'eina subtítols
+--<>--<>--<>--<>--<>--
 Prem la tecla fletxa dreta ->
 
 Amb aquesta tecla avances a
-la seguent pantalla de visualització
+la següent pantalla de visualització
 ->
 
-A la part superior (o inferior)
-veuràs en gris fosc el següent text
+A la pantalla veuràs també
+el següent text en gris molt fosc
+->
+
+Pots canviar les intensitats del gris
+amb "F" (Fosc) i "C" (Clar)
 ->
 
 Per ocultar-lo,
@@ -48,6 +61,9 @@ Per començar, has de crear
 un fitxer de text "txt"
 amb les frases que han de mostrar-se
 
+Es mostrarà el contingut que hagi
+després de la primera marca "---"
+
 No escriguis més de tres files
 
 Separa cada grup de frases
@@ -56,6 +72,35 @@ per un salt de línea en blanc
 Si necesites una pantalla sense res
 escriu "---" deixant també
 un salt de línea abans i després
+
+@1 Pots canviar el color del text
+posant davant @1 @2 @3 @4 @5 @6
+
+@1 @1 Blanc 
+@2 @2 Rosa 
+
+@3 @3 Blau 
+@4 @4 Verd 
+
+@5 @5 Groc 
+@6 @6 Taronja 
+
+@1 A l'inici del txt
+pots crear-te una "xuleta"
+amb els colors i els personatges
+
+No sortiran en pantalla
+ @1 Blanc - Cor
+ @2 Rosa - Adina
+ 
+ @3 Blau - Nemorino
+ @4 Verd - Belcore
+ 
+ @5 Groc - Dulcamara
+ @6 Taronja - Giannetta
+
+@1 Es mantindrà el color fins que
+hagi un altre codi de color
 
 * Marques dins del fitxer
 
@@ -83,7 +128,8 @@ Aquesta eina ha estat
 dissenyada per a 
 l'Obrador Coral de Rubí
 
-per Xavier Ribes
+Xavier Ribes
+--<>--<>--<>--<>--<>--
 OCR 2025
 
 ---
